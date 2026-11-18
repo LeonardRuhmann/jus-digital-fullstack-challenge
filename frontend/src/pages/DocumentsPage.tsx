@@ -9,8 +9,11 @@ import {
 import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
 import ActionBar from "../components/documents/ActionBar";
+import DeleteConfirmModal from "../components/documents/DeleteConfirmModal";
 import DocumentCard from "../components/documents/DocumentCard";
 import EmptyDocumentsState from "../components/documents/EmptyDocumentsState";
+import UploadModal from "../components/documents/UploadModal";
+import ViewAnalysisModal from "../components/documents/ViewAnalysisModal";
 import { documentsApi } from "../services/api";
 import type { DocumentItem } from "../types";
 
@@ -27,13 +30,11 @@ export default function DocumentsPage() {
   // Selection state (supports single & multi-selection)
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // File selected via button or Drag-and-Drop (triggers UploadModal in Step 3.5)
+  // Modal states
   const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null);
-  // Document opened for viewing AI Analysis (triggers ViewAnalysisModal in Step 3.5)
   const [previewDocument, setPreviewDocument] = useState<DocumentItem | null>(
     null
   );
-  // Confirm delete modal open state (Step 3.5)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
 
   // Drag-and-drop state when grid already has documents
@@ -103,6 +104,41 @@ export default function DocumentsPage() {
     setPendingUploadFile(file);
   }, []);
 
+  const handleUploadSuccess = useCallback(
+    (created: DocumentItem) => {
+      setPendingUploadFile(null);
+      setDocuments((prev) => [created, ...prev]);
+
+      if (created.status === "COMPLETED") {
+        showFeedback(
+          "success",
+          "Documento enviado e analisado pela IA com sucesso!"
+        );
+      } else {
+        showFeedback(
+          "error",
+          "Arquivo salvo na AWS, mas a análise da IA falhou. Clique no documento para tentar novamente."
+        );
+      }
+
+      // Open the preview modal immediately so the user sees the AI result (or Retry option)
+      setPreviewDocument(created);
+    },
+    [showFeedback]
+  );
+
+  const handleDocumentUpdated = useCallback(
+    (updated: DocumentItem) => {
+      setDocuments((prev) =>
+        prev.map((doc) => (doc.id === updated.id ? updated : doc))
+      );
+      if (updated.status === "COMPLETED") {
+        showFeedback("success", "Análise da IA concluída com sucesso!");
+      }
+    },
+    [showFeedback]
+  );
+
   const handleViewSelectedAnalysis = useCallback(() => {
     if (selectedIds.length !== 1) return;
     const found = documents.find((d) => d.id === selectedIds[0]);
@@ -110,6 +146,34 @@ export default function DocumentsPage() {
       setPreviewDocument(found);
     }
   }, [documents, selectedIds]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      const result =
+        selectedIds.length === 1
+          ? await documentsApi.deleteOne(selectedIds[0])
+          : await documentsApi.bulkDelete(selectedIds);
+
+      const deletedSet = new Set(result.deleted_ids);
+      setDocuments((prev) => prev.filter((doc) => !deletedSet.has(doc.id)));
+      setSelectedIds([]);
+      setIsDeleteModalOpen(false);
+      showFeedback(
+        "success",
+        result.deleted_count === 1
+          ? "Documento excluído com sucesso."
+          : `${result.deleted_count} documentos excluídos com sucesso.`
+      );
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Erro ao excluir documento(s).";
+      showFeedback("error", msg);
+      setIsDeleteModalOpen(false);
+    }
+  }, [selectedIds, showFeedback]);
 
   const handleContainerDragOver = (e: DragEvent<HTMLDivElement>) => {
     if (documents.length === 0) return;
@@ -132,12 +196,6 @@ export default function DocumentsPage() {
       setPendingUploadFile(file);
     }
   };
-
-  // Suppress unused variable warnings until Step 3.5 mounts the 3 modals
-  void pendingUploadFile;
-  void previewDocument;
-  void isDeleteModalOpen;
-  void showFeedback;
 
   return (
     <div className="min-h-screen bg-[#fcfcfd] flex flex-col md:flex-row w-full">
@@ -242,6 +300,33 @@ export default function DocumentsPage() {
           )}
         </div>
       </main>
+
+      {/* 1. Upload & AI Instruction Modal (Figma node 80:645) */}
+      {pendingUploadFile && (
+        <UploadModal
+          file={pendingUploadFile}
+          onClose={() => setPendingUploadFile(null)}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
+
+      {/* 2. View AI Analysis Modal (Figma node 80:1302) */}
+      {previewDocument && (
+        <ViewAnalysisModal
+          document={previewDocument}
+          onClose={() => setPreviewDocument(null)}
+          onDocumentUpdated={handleDocumentUpdated}
+        />
+      )}
+
+      {/* 3. Safe Delete Confirmation Modal (Page 7 Differential) */}
+      {isDeleteModalOpen && selectedIds.length > 0 && (
+        <DeleteConfirmModal
+          selectedCount={selectedIds.length}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
     </div>
   );
 }
