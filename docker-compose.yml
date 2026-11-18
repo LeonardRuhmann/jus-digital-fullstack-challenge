@@ -17,5 +17,35 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jusdigital-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Override host from localhost to the 'postgres' service name inside the Docker network
+      DATABASE_URL: postgresql://${POSTGRES_USER:-jusdigital}:${POSTGRES_PASSWORD:-jusdigital_dev_pass}@postgres:5432/${POSTGRES_DB:-jusdigital_db}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${BACKEND_URL:-http://localhost:8000}
+    container_name: jusdigital-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
