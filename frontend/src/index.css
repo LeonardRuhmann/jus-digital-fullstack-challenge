@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Geist", system-ui, -apple-system, sans-serif;
+    background-color: #FCFCFD;
+    color: #1C2024;
+  }
+}
