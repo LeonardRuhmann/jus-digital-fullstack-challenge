@@ -1,4 +1,5 @@
 import base64
+import logging
 from openai import (
     APIConnectionError,
     APIError,
@@ -10,6 +11,8 @@ from openai import (
 
 from app.core.config import settings
 from app.services.text_extractor import ExtractedContent
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
     "Você é a Ju, assistente jurídica inteligente da Jus Digital. "
@@ -117,8 +120,9 @@ class AIService:
                 "Erro de conexão ao comunicar com a API OpenAI. Tente novamente."
             ) from exc
         except APIError as exc:
+            logger.exception("OpenAI API error while analyzing document")
             raise AIAnalysisError(
-                f"Erro na API OpenAI ao processar o documento: {exc}"
+                "Erro na API OpenAI ao processar o documento. Tente novamente em instantes."
             ) from exc
 
 

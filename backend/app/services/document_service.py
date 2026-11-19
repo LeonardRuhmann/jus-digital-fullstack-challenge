@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID, uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,6 +18,8 @@ from app.schemas.document import (
 from app.services.ai_service import AIAnalysisError, ai_service
 from app.services.s3_service import s3_service
 from app.services.text_extractor import extract_content, validate_file
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentService:
@@ -186,10 +189,13 @@ class DocumentService:
         except (ValueError, AIAnalysisError) as exc:
             document.status = DocumentStatus.FAILED
             document.error_message = str(exc)
-        except Exception as exc:
+        except Exception:
+            logger.exception(
+                "Unexpected error during AI analysis for document %s", document.id
+            )
             document.status = DocumentStatus.FAILED
             document.error_message = (
-                f"Erro inesperado durante a análise com IA: {exc}"
+                "Erro inesperado durante a análise com IA. Tente novamente em instantes."
             )
 
         db.commit()

@@ -1,3 +1,4 @@
+import logging
 import re
 from uuid import UUID
 import boto3
@@ -6,6 +7,8 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 from app.core.config import settings
 from app.core.exceptions import ExternalServiceException
+
+logger = logging.getLogger(__name__)
 
 
 class S3Service:
@@ -51,8 +54,9 @@ class S3Service:
                 ServerSideEncryption="AES256",
             )
         except (ClientError, BotoCoreError) as exc:
+            logger.exception("Failed to upload object to S3")
             raise ExternalServiceException(
-                f"Erro ao enviar arquivo para o armazenamento AWS S3: {exc}",
+                "Não foi possível enviar o arquivo para o armazenamento. Verifique sua conexão e tente novamente.",
                 error_code="S3_UPLOAD_ERROR",
             ) from exc
 
@@ -66,8 +70,9 @@ class S3Service:
             )
             return response["Body"].read()
         except (ClientError, BotoCoreError) as exc:
+            logger.exception("Failed to download object from S3")
             raise ExternalServiceException(
-                f"Erro ao recuperar arquivo do AWS S3: {exc}",
+                "Não foi possível recuperar o arquivo armazenado. Tente novamente em instantes.",
                 error_code="S3_DOWNLOAD_ERROR",
             ) from exc
 
@@ -95,8 +100,9 @@ class S3Service:
                 ExpiresIn=ttl,
             )
         except (ClientError, BotoCoreError) as exc:
+            logger.exception("Failed to generate S3 presigned URL")
             raise ExternalServiceException(
-                f"Erro ao gerar URL segura de visualização no S3: {exc}",
+                "Não foi possível gerar o link seguro de visualização. Tente novamente em instantes.",
                 error_code="S3_PRESIGN_ERROR",
             ) from exc
 
@@ -115,8 +121,9 @@ class S3Service:
                     Delete={"Objects": batch, "Quiet": True},
                 )
         except (ClientError, BotoCoreError) as exc:
+            logger.exception("Failed to delete object(s) from S3")
             raise ExternalServiceException(
-                f"Erro ao remover arquivo(s) do AWS S3: {exc}",
+                "Não foi possível remover o(s) arquivo(s) do armazenamento. Tente novamente em instantes.",
                 error_code="S3_DELETE_ERROR",
             ) from exc
 

@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import urlencode
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
@@ -8,6 +9,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.exceptions import ExternalServiceException, UnauthorizedException, ValidationException
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
@@ -98,7 +101,10 @@ class AuthService:
                 settings.GOOGLE_CLIENT_ID,
             )
         except ValueError as exc:
-            raise UnauthorizedException(f"Token do Google inválido: {exc}") from exc
+            logger.warning("Invalid Google ID token: %s", exc)
+            raise UnauthorizedException(
+                "Token do Google inválido ou expirado. Faça login novamente."
+            ) from exc
 
         return self._upsert_google_user(
             db=db,

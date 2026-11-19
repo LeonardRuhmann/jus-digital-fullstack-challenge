@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 import io
+import logging
 from pathlib import Path
 from docx import Document as DocxDocument
 from pypdf import PdfReader
 
 from app.core.config import settings
 from app.core.exceptions import ValidationException
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".md", ".csv"}
 ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
@@ -139,7 +142,10 @@ def _extract_pdf_text(data: bytes) -> str:
                 pages_text.append(f"--- Página {idx} ---\n{page_text}")
         return "\n\n".join(pages_text)
     except Exception as exc:
-        raise ValueError(f"Falha ao ler arquivo PDF: {exc}") from exc
+        logger.warning("Failed to parse PDF document: %s", exc)
+        raise ValueError(
+            "Não foi possível ler o arquivo PDF. Verifique se ele não está corrompido ou protegido por senha."
+        ) from exc
 
 
 def _extract_docx_text(data: bytes) -> str:
@@ -153,7 +159,10 @@ def _extract_docx_text(data: bytes) -> str:
                     parts.append(row_text)
         return "\n".join(parts)
     except Exception as exc:
-        raise ValueError(f"Falha ao ler arquivo DOCX: {exc}") from exc
+        logger.warning("Failed to parse DOCX document: %s", exc)
+        raise ValueError(
+            "Não foi possível ler o arquivo DOCX. Verifique se ele não está corrompido ou protegido por senha."
+        ) from exc
 
 
 def _extract_legacy_doc_text(data: bytes) -> str:
