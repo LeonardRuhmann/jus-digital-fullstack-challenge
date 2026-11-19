@@ -114,10 +114,10 @@ def start_postgres_and_migrate() -> None:
         print("[ERROR] PostgreSQL did not become ready in time.")
         sys.exit(1)
 
-    alembic_bin = get_venv_binary("alembic")
+    python_bin = get_venv_binary("python")
     print("[DB] Running Alembic migrations (upgrade head)...")
     mig = subprocess.run(
-        [str(alembic_bin), "upgrade", "head"],
+        [str(python_bin), "-m", "alembic", "upgrade", "head"],
         cwd=BACKEND_DIR,
         check=False,
     )
@@ -168,10 +168,14 @@ def stream_output(proc: subprocess.Popen[str], prefix: str) -> None:
 
 def run_tests() -> int:
     ensure_venv_exists()
-    pytest_bin = get_venv_binary("pytest")
+    python_bin = get_venv_binary("python")
     print("[TEST] Running backend pytest suite...")
     try:
-        res = subprocess.run([str(pytest_bin), "-v"], cwd=BACKEND_DIR, check=False)
+        res = subprocess.run(
+            [str(python_bin), "-m", "pytest", "-v"],
+            cwd=BACKEND_DIR,
+            check=False,
+        )
         return res.returncode
     except KeyboardInterrupt:
         return 0
@@ -182,11 +186,11 @@ def run_backend_only() -> int:
     stop_conflicting_containers(["backend"])
     start_postgres_and_migrate()
 
-    uvicorn_bin = get_venv_binary("uvicorn")
+    python_bin = get_venv_binary("python")
     print("\n[BACKEND] Starting FastAPI at http://localhost:8000 (Docs: http://localhost:8000/docs)\n")
     try:
         res = subprocess.run(
-            [str(uvicorn_bin), "app.main:app", "--reload", "--port", "8000"],
+            [str(python_bin), "-m", "uvicorn", "app.main:app", "--reload", "--port", "8000"],
             cwd=BACKEND_DIR,
             check=False,
         )
@@ -216,7 +220,7 @@ def run_all() -> int:
     stop_conflicting_containers(["backend", "frontend"])
     start_postgres_and_migrate()
 
-    uvicorn_bin = get_venv_binary("uvicorn")
+    python_bin = get_venv_binary("python")
     popen_kwargs: dict = {
         "stdout": subprocess.PIPE,
         "stderr": subprocess.STDOUT,
@@ -237,7 +241,7 @@ def run_all() -> int:
     print("============================================================\n")
 
     backend_proc = subprocess.Popen(
-        [str(uvicorn_bin), "app.main:app", "--reload", "--port", "8000"],
+        [str(python_bin), "-m", "uvicorn", "app.main:app", "--reload", "--port", "8000"],
         cwd=BACKEND_DIR,
         **popen_kwargs,
     )
