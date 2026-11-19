@@ -63,7 +63,7 @@ async def google_callback(
         query = urlencode({"error": "Código de autorização do Google ausente."})
         return RedirectResponse(url=f"{frontend_base}/login?{query}", status_code=302)
 
-    if saved_state and state and saved_state != state:
+    if not saved_state or not state or saved_state != state:
         query = urlencode({"error": "Estado de segurança OAuth inválido. Tente novamente."})
         return RedirectResponse(url=f"{frontend_base}/login?{query}", status_code=302)
 
