@@ -1,0 +1,92 @@
+name: CI - Build, Validate & Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Back-end (Python 3.11 / FastAPI)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile-check Python sources & verify OpenAPI schema
+        working-directory: backend
+        run: |
+          python -m compileall -q app
+          python -c "from app.main import app; schema = app.openapi(); assert '/api/documents' in schema['paths']"
+
+      - name: Run pytest suite (when tests directory exists)
+        working-directory: backend
+        run: |
+          if [ -d "tests" ] && [ -n "$(find tests -name 'test_*.py' -print -quit)" ]; then
+            pytest -v
+          else
+            echo "No test_*.py files present yet; skipping pytest."
+          fi
+
+  frontend:
+    name: Front-end (React / TypeScript / Vite)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: TypeScript typecheck & production Vite build
+        working-directory: frontend
+        run: npm run build
+
+  infra-and-docker:
+    name: Validate Docker Compose & Terraform IaC
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Check Terraform formatting & validate config
+        working-directory: infra
+        run: |
+          terraform fmt -check
+          terraform init -backend=false
+          terraform validate

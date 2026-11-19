@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars and set a globally unique bucket name before running `terraform apply`
+aws_region    = "sa-east-1"
+bucket_name   = "jus-digital-docs-yourname-2026"
+iam_user_name = "jus-digital-backend-s3"
+frontend_url  = "http://localhost:5173"
+environment   = "development"
