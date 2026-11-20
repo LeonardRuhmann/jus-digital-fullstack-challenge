@@ -129,7 +129,7 @@ export default function UploadModal({
         aria-modal="true"
         aria-labelledby="upload-dialog-title"
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#fcfcfd] border border-[#d9d9e0] rounded-[12px] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] w-full max-w-[480px] flex flex-col overflow-hidden"
+        className="bg-[#fcfcfd] border border-[#d9d9e0] rounded-[12px] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] w-full max-w-[480px] max-h-[90vh] overflow-y-auto flex flex-col"
       >
         {/* Header (Figma node 80:646) */}
         <div className="flex gap-[16px] items-center pb-[16px] pl-[16px] pr-[4px] pt-[4px] w-full">

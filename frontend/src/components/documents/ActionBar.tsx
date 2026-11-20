@@ -102,7 +102,7 @@ export default function ActionBar({
                     }}
                     className="flex gap-[12px] items-center p-[6px] rounded-[6px] w-full hover:bg-[#f0f0f3] transition-colors text-left"
                   >
-                    <Eye className="size-[24px] text-[#60646c] shrink-0 stroke-[1.75]" />
+                    <Eye className="size-[24px] text-[#30a46c] shrink-0 stroke-[1.75]" />
                     <span className="font-medium text-[#60646c] text-[16px] tracking-[0.5px]">
                       Visualizar analise
                     </span>
