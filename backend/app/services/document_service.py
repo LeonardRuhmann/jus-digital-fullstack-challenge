@@ -76,9 +76,20 @@ class DocumentService:
             file_size=len(file_bytes),
             s3_key=s3_key,
         )
-        db.add(document)
-        db.commit()
-        db.refresh(document)
+        try:
+            db.add(document)
+            db.commit()
+            db.refresh(document)
+        except Exception:
+            db.rollback()
+            try:
+                s3_service.delete_files([s3_key])
+            except Exception:
+                logger.exception(
+                    "Failed to clean up orphaned S3 object after DB commit failure: %s",
+                    s3_key,
+                )
+            raise
 
         # 3. Extract text/image and run GPT-4o-mini analysis
         self._run_ai_pipeline(db=db, document=document, file_bytes=file_bytes)

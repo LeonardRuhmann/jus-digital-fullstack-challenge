@@ -274,6 +274,38 @@ def test_upload_s3_failure_writes_nothing_to_database(
     assert db_session.execute(select(Document)).scalars().all() == []
 
 
+def test_upload_db_failure_cleans_up_s3_object(
+    db_session, test_user, fake_s3, monkeypatch
+):
+    uploaded_keys: list[str] = []
+    original_upload = doc_service_module.s3_service.upload_file
+
+    def tracking_upload(file_bytes: bytes, s3_key: str, content_type: str) -> None:
+        uploaded_keys.append(s3_key)
+        original_upload(file_bytes=file_bytes, s3_key=s3_key, content_type=content_type)
+
+    def fail_commit():
+        raise RuntimeError("Simulated database commit failure")
+
+    monkeypatch.setattr(doc_service_module.s3_service, "upload_file", tracking_upload)
+    monkeypatch.setattr(db_session, "commit", fail_commit)
+
+    with pytest.raises(RuntimeError, match="Simulated database commit failure"):
+        doc_service_module.document_service.create_and_analyze_document(
+            db=db_session,
+            user=test_user,
+            filename="contrato.txt",
+            file_bytes=b"Texto valido.",
+            title="Contrato",
+            instruction="Resuma",
+        )
+
+    assert len(uploaded_keys) == 1
+    assert uploaded_keys[0] not in fake_s3
+    assert len(fake_s3) == 0
+    assert db_session.execute(select(Document)).scalars().all() == []
+
+
 @pytest.mark.parametrize(
     ("title", "instruction", "expected_msg"),
     [
