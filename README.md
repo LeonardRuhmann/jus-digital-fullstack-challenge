@@ -2,6 +2,9 @@
 
 Aplicação FullStack para upload, armazenamento seguro e análise inteligente de documentos com a **Ju** (assistente jurídica baseada em **OpenAI `gpt-4o-mini`**), integrando **Google OAuth 2.0**, **AWS S3** e **PostgreSQL**, com interface fiel ao protótipo do Figma (desktop e responsivo mobile).
 
+> **Demo Online (Produção):** [`https://jus-digital-web.onrender.com`](https://jus-digital-web.onrender.com)  
+> *(Hospedada em nuvem com Render + Supabase + AWS S3, além de 100% executável localmente via Docker Compose.)*
+
 ---
 
 ## Sumário
@@ -14,6 +17,7 @@ Aplicação FullStack para upload, armazenamento seguro e análise inteligente d
   - [1. Configurar Variáveis de Ambiente](#1-configurar-variáveis-de-ambiente)
   - [2. Subir tudo com Docker Compose (Recomendado)](#2-subir-tudo-com-docker-compose-recomendado)
   - [3. Rodar em Modo Desenvolvimento Local (Hot Reload)](#3-rodar-em-modo-desenvolvimento-local-hot-reload)
+- [Deploy em Nuvem (Render + Supabase)](#deploy-em-nuvem-render--supabase)
 - [Testes Automatizados](#testes-automatizados)
 - [Infraestrutura como Código (Terraform) e CI](#infraestrutura-como-código-terraform-e-ci)
 - [Endpoints da API](#endpoints-da-api)
@@ -170,6 +174,22 @@ Para rodar Postgres no Docker com back-end (`uvicorn --reload`) e front-end (`vi
      ```
 
    Opções disponíveis: `--backend` (`-Backend`), `--frontend` (`-Frontend`) e `--test` (`-Test`).
+
+---
+
+## Deploy em Nuvem (Render + Supabase)
+
+Além da execução local via Docker, a aplicação está publicada em produção com a seguinte arquitetura:
+
+- **Front-end (Render Static Site — `jus-digital-web.onrender.com`):**
+  - Build estático React + Vite configurado com `VITE_API_URL=/` e regra de fallback SPA (`/* → /index.html`).
+  - **Proxy Reverso (`/api/* → back-end`):** encaminha todas as chamadas de API sob a mesma origem HTTPS do front-end, mantendo o cookie JWT `HttpOnly` como *first-party cookie* e evitando bloqueios de *third-party cookies*.
+- **Back-end (Render Web Service — Docker):**
+  - Executa o [backend/Dockerfile](backend/Dockerfile) (`PORT=8000`, `APP_ENV=production` com cookies `Secure`) aplicando migrações Alembic automaticamente no startup.
+  - **Keep-alive:** Cron Job consultando `/health` a cada 10 minutos para manter a instância ativa e evitar *cold start* no plano gratuito.
+- **Banco de Dados (Supabase PostgreSQL):**
+  - Conectado via **Session Pooler (IPv4, porta `5432`)** para compatibilidade com o Render e suporte completo a migrações Alembic.
+  - **Data API REST pública desativada:** reduz a superfície de ataque garantindo que nenhuma tabela fique exposta fora do FastAPI (acesso exclusivo via `DATABASE_URL` autenticada).
 
 ---
 
