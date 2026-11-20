@@ -58,7 +58,7 @@ export default function ActionBar({
       )}
 
       {/* Right side: Selection Pill + Dropdown & Add Document Button */}
-      <div className="flex flex-wrap items-center gap-[8px] ml-auto">
+      <div className="flex flex-wrap items-center gap-[8px] w-full sm:w-auto sm:ml-auto">
         {selectedCount > 0 && (
           <div className="relative" ref={dropdownRef}>
             <button
@@ -73,7 +73,7 @@ export default function ActionBar({
 
             {/* Dropdown Menu (Figma nodes 80:882 for 1 selected, 80:1456 for >1 selected) */}
             {dropdownOpen && (
-              <div className="absolute right-0 sm:left-0 mt-[8px] w-[280px] bg-[#fcfcfd] border border-[#d9d9e0] rounded-[12px] p-[4px] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] flex flex-col gap-[4px] z-30">
+              <div className="absolute left-0 mt-[8px] w-[260px] sm:w-[280px] max-w-[calc(100vw-64px)] bg-[#fcfcfd] border border-[#d9d9e0] rounded-[12px] p-[4px] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] flex flex-col gap-[4px] z-30">
                 <button
                   type="button"
                   onClick={() => {
