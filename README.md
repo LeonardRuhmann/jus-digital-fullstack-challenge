@@ -2,9 +2,6 @@
 
 Aplicação FullStack para upload, armazenamento seguro e análise inteligente de documentos com a **Ju** (assistente jurídica baseada em **OpenAI `gpt-4o-mini`**), integrando **Google OAuth 2.0**, **AWS S3** e **PostgreSQL**, com interface fiel ao protótipo do Figma (desktop e responsivo mobile).
 
-> **Demo Online (Produção):** [`https://jus-digital-web.onrender.com`](https://jus-digital-web.onrender.com)  
-> *(Hospedada em nuvem com Render + Supabase + AWS S3, além de 100% executável localmente via Docker Compose.)*
-
 ---
 
 ## Sumário
@@ -179,14 +176,14 @@ Para rodar Postgres no Docker com back-end (`uvicorn --reload`) e front-end (`vi
 
 ## Deploy em Nuvem (Render + Supabase)
 
-Além da execução local via Docker, a aplicação está publicada em produção com a seguinte arquitetura:
+Durante a entrega e apresentação do desafio, a aplicação também foi publicada em nuvem com a arquitetura abaixo *(instâncias gratuitas desativadas após a apresentação conforme orientação de encerramento de recursos; utilize `docker compose up --build` para execução local)*:
 
-- **Front-end (Render Static Site — `jus-digital-web.onrender.com`):**
+- **Front-end (Render Static Site):**
   - Build estático React + Vite configurado com `VITE_API_URL=/` e regra de fallback SPA (`/* → /index.html`).
   - **Proxy Reverso (`/api/* → back-end`):** encaminha todas as chamadas de API sob a mesma origem HTTPS do front-end, mantendo o cookie JWT `HttpOnly` como *first-party cookie* e evitando bloqueios de *third-party cookies*.
 - **Back-end (Render Web Service — Docker):**
   - Executa o [backend/Dockerfile](backend/Dockerfile) (`PORT=8000`, `APP_ENV=production` com cookies `Secure`) aplicando migrações Alembic automaticamente no startup.
-  - **Keep-alive:** Cron Job consultando `/health` a cada 10 minutos para manter a instância ativa e evitar *cold start* no plano gratuito.
+  - **Keep-alive:** Cron Job consultando `/health` a cada 10 minutos para evitar *cold start* durante a avaliação.
 - **Banco de Dados (Supabase PostgreSQL):**
   - Conectado via **Session Pooler (IPv4, porta `5432`)** para compatibilidade com o Render e suporte completo a migrações Alembic.
   - **Data API REST pública desativada:** reduz a superfície de ataque garantindo que nenhuma tabela fique exposta fora do FastAPI (acesso exclusivo via `DATABASE_URL` autenticada).
